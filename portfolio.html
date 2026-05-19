@@ -140,7 +140,39 @@
       radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
   }
 
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,200;0,300;1,300&family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500&display=swap');
+  /* Audio toggle (tap to begin ambient drone) */
+  #audio-toggle {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    z-index: 5;
+    background: transparent;
+    border: 1px solid rgba(110, 198, 255, 0.45);
+    color: var(--frost);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: border-color 200ms, background 200ms;
+  }
+  #audio-toggle:hover { border-color: var(--rim); background: rgba(110, 198, 255, 0.08); }
+  #audio-toggle .dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-right: 8px;
+    background: #2a3a4a;
+    transition: background 200ms, box-shadow 200ms;
+  }
+  #audio-toggle.on .dot { background: var(--rim); box-shadow: 0 0 8px var(--rim); }
+
+  /* Respect reduced-motion users — collapse decorative motion. */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,200;0,300;1,300&family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
 
@@ -162,6 +194,10 @@
   <a href="#work">Work</a>
   <a href="#contact">Contact</a>
 </nav>
+
+<button id="audio-toggle" aria-pressed="false" aria-label="Toggle ambient audio">
+  <span class="dot"></span>Sound · Off
+</button>
 
 <div id="scroll">
 
@@ -216,6 +252,9 @@ import { UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass }     from 'three/addons/postprocessing/ShaderPass.js';
 import { RGBShiftShader } from 'three/addons/shaders/RGBShiftShader.js';
 import { OutputPass }     from 'three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment }from 'three/addons/environments/RoomEnvironment.js';
+
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const canvas = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
@@ -226,6 +265,11 @@ renderer.toneMappingExposure = 1.05;
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(0x05080d, 14, 42);
+
+// Environment map — required for MeshPhysicalMaterial transmission to refract
+// realistically. Synthesized at runtime via RoomEnvironment so we ship no HDR.
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
 const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 100);
 camera.position.set(0, 0, 8);
@@ -429,6 +473,41 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
+// --- Ambient audio: two sub-bass sines through a lowpass, cutoff driven by
+// scroll velocity. Requires a user gesture to start (browser autoplay policy).
+let audio = null;          // { ctx, gain, filter }
+const audioBtn = document.getElementById('audio-toggle');
+audioBtn.addEventListener('click', () => audio ? stopAudio() : startAudio());
+
+function startAudio() {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return;
+  const ctx = new Ctx();
+  const osc1 = ctx.createOscillator(); osc1.type = 'sine'; osc1.frequency.value = 55;     // A1
+  const osc2 = ctx.createOscillator(); osc2.type = 'sine'; osc2.frequency.value = 82.41;  // E2
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass'; filter.frequency.value = 240; filter.Q.value = 1.2;
+  const gain = ctx.createGain();
+  gain.gain.value = 0; // fade in
+  osc1.connect(filter); osc2.connect(filter); filter.connect(gain); gain.connect(ctx.destination);
+  osc1.start(); osc2.start();
+  gain.gain.setTargetAtTime(0.11, ctx.currentTime, 0.6);
+  audio = { ctx, gain, filter };
+  audioBtn.classList.add('on');
+  audioBtn.setAttribute('aria-pressed', 'true');
+  audioBtn.innerHTML = '<span class="dot"></span>Sound · On';
+}
+function stopAudio() {
+  if (!audio) return;
+  const { ctx, gain } = audio;
+  gain.gain.setTargetAtTime(0, ctx.currentTime, 0.25);
+  setTimeout(() => ctx.close(), 600);
+  audio = null;
+  audioBtn.classList.remove('on');
+  audioBtn.setAttribute('aria-pressed', 'false');
+  audioBtn.innerHTML = '<span class="dot"></span>Sound · Off';
+}
+
 // --- Animation loop ---
 const clock = new THREE.Clock();
 function tick() {
@@ -441,17 +520,24 @@ function tick() {
   lastSmoothed = scrollSmoothed;
 
   // Camera drift along the Z corridor + gentle mouse parallax.
+  // Path: start in front of block 0 (z=8), end just past the last block (z=-31).
   mouse.x += (mouse.tx - mouse.x) * 0.05;
   mouse.y += (mouse.ty - mouse.y) * 0.05;
-  const totalZ = SPACING_Z * (PROJECT_COUNT - 1);
-  camera.position.z = 8 + scrollSmoothed * (totalZ - 2);
-  camera.position.x = mouse.x * 0.35 + Math.sin(t * 0.15) * 0.15;
-  camera.position.y = -mouse.y * 0.25 + Math.sin(t * 0.22) * 0.1;
+  const camStart = 8;
+  const lastBlockZ = (PROJECT_COUNT - 1) * SPACING_Z - 4;       // -28
+  const camEnd = lastBlockZ + 3;                                // -25, just past
+  const idle = reducedMotion ? 0 : 1;
+  camera.position.z = camStart + scrollSmoothed * (camEnd - camStart);
+  camera.position.x = mouse.x * 0.35 + Math.sin(t * 0.15) * 0.15 * idle;
+  camera.position.y = -mouse.y * 0.25 + Math.sin(t * 0.22) * 0.1 * idle;
   camera.lookAt(0, 0, camera.position.z + SPACING_Z * 0.6);
 
   // Modulate chromatic aberration with scroll velocity — strongest mid-motion.
-  const aberrationBase = 0.0012;
-  const aberrationKick = Math.min(0.012, Math.abs(scrollVelocity) * 0.018);
+  // Disabled for reduced-motion users (vestibular trigger).
+  const aberrationBase = reducedMotion ? 0 : 0.0012;
+  const aberrationKick = reducedMotion
+    ? 0
+    : Math.min(0.012, Math.abs(scrollVelocity) * 0.018);
   rgbShift.uniforms.amount.value = aberrationBase + aberrationKick;
 
   // Rotate each ice block lazily; spin inner core faster.
@@ -475,20 +561,28 @@ function tick() {
   }
   snowGeo.attributes.position.needsUpdate = true;
 
+  // Audio: filter cutoff tracks scroll velocity — quiet when still, opens up
+  // during motion. Adds a subtle "movement matches sound" coupling.
+  if (audio) {
+    const cutoff = 220 + Math.min(1800, Math.abs(scrollVelocity) * 2400);
+    audio.filter.frequency.setTargetAtTime(cutoff, audio.ctx.currentTime, 0.08);
+  }
+
   composer.render();
   requestAnimationFrame(tick);
 }
 tick();
 
 // --- Notes for next iteration ---
-// • Audio: WebAudio drone modulated by scrollVelocity would close the loop on
-//   "ambient sound that matches every movement". Skipped here because browser
-//   autoplay rules require a user gesture; needs a tasteful "tap to begin".
 // • WebGL-rendered text: an MSDF font atlas via troika-three-text would let us
 //   put the headings inside the canvas (with their own chromatic aberration).
 //   The HTML overlay above is a faster prototype path and stays accessible.
 // • Particle footer that morphs to shapes on hover: the snow buffer here is a
 //   good starting point — swap target positions on hover and lerp.
+// • Per-block scroll dwell: current scroll→Z mapping is linear, so the camera
+//   glides through evenly. An eased step function (e.g. smoothstep around each
+//   block's normalized scroll position) would create cinematic "stop and
+//   linger" at each project.
 </script>
 
 </body>
