@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cryosphere — Portfolio</title>
+<style>
+  :root {
+    --ink: #05080d;
+    --ice: #cfe9f5;
+    --rim: #6ec6ff;
+    --frost: #eaf6ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: var(--ink); color: var(--frost); }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    letter-spacing: 0.01em;
+  }
+  /* The scroll container — gives us scroll distance per scene. */
+  #scroll { position: relative; width: 100%; }
+  /* Fixed canvas backdrop. */
+  #stage {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  /* HTML overlay text sits above the canvas; aligned to scenes. */
+  .scene {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 0 8vw;
+    z-index: 2;
+  }
+  .scene .label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    color: var(--rim);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    opacity: 0.85;
+  }
+  .scene h2 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 300;
+    font-size: clamp(40px, 6vw, 88px);
+    line-height: 1.02;
+    color: var(--frost);
+    max-width: 12ch;
+    text-shadow: 0 0 40px rgba(110, 198, 255, 0.25);
+  }
+  .scene p {
+    margin-top: 18px;
+    max-width: 44ch;
+    color: #b8d4e6;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .scene.right { justify-content: flex-end; text-align: right; }
+  .scene.right h2, .scene.right p { margin-left: auto; }
+
+  /* Intro & outro */
+  #intro {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 8vw 12vh;
+    z-index: 2;
+  }
+  #intro .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    color: var(--rim);
+    text-transform: uppercase;
+  }
+  #intro h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 200;
+    font-size: clamp(56px, 10vw, 160px);
+    line-height: 0.95;
+    margin-top: 18px;
+    color: var(--frost);
+  }
+  #intro h1 em {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--rim);
+  }
+
+  #outro {
+    position: relative;
+    height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+  }
+  #outro span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.4em;
+    color: var(--rim);
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+
+  /* Top-right nav */
+  nav {
+    position: fixed;
+    top: 28px;
+    right: 32px;
+    z-index: 5;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--frost);
+    text-transform: uppercase;
+    opacity: 0.85;
+    mix-blend-mode: difference;
+  }
+  nav a { color: inherit; text-decoration: none; margin-left: 28px; }
+  nav .brand { font-weight: 700; color: var(--rim); }
+
+  /* Subtle vignette */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%);
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,200;0,300;1,300&family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500&display=swap');
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,200;0,300;1,300&family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.161.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.161.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<canvas id="stage"></canvas>
+
+<nav>
+  <span class="brand">◈ CRYOSPHERE</span>
+  <a href="#work">Work</a>
+  <a href="#contact">Contact</a>
+</nav>
+
+<div id="scroll">
+
+  <section id="intro">
+    <div class="kicker">A field study, 78°N</div>
+    <h1>Selected work,<br/>preserved in <em>ice</em>.</h1>
+  </section>
+
+  <section class="scene" data-project="0">
+    <div>
+      <div class="label">01 — Glacier OS</div>
+      <h2>Operating systems for cold climates.</h2>
+      <p>A low-power runtime for autonomous sensors deployed across Svalbard. Survives -40°C, runs for nine months on a single charge, and uplinks only when the aurora is quiet.</p>
+    </div>
+  </section>
+
+  <section class="scene right" data-project="1">
+    <div>
+      <div class="label">02 — Permafrost Index</div>
+      <h2>A real-time map of thaw.</h2>
+      <p>Satellite-fed dashboard tracking ground temperature across 14,000 monitoring stations. Used by three national meteorological services to issue infrastructure warnings.</p>
+    </div>
+  </section>
+
+  <section class="scene" data-project="2">
+    <div>
+      <div class="label">03 — Crystal Lattice</div>
+      <h2>Generative crystallography.</h2>
+      <p>A research tool that grows synthetic crystal structures from a single seed parameter. Outputs printable lattice geometry used in lightweight aerospace alloys.</p>
+    </div>
+  </section>
+
+  <section class="scene right" data-project="3">
+    <div>
+      <div class="label">04 — Polar Archive</div>
+      <h2>An archive that doesn't melt.</h2>
+      <p>Cold-storage protocol for cultural records. Distributes 1PB of high-resolution scans across mirrored bunkers above the Arctic Circle, with verification every solstice.</p>
+    </div>
+  </section>
+
+  <section id="outro">
+    <span>End of transmission — scroll to surface</span>
+  </section>
+
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass }     from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass }     from 'three/addons/postprocessing/ShaderPass.js';
+import { RGBShiftShader } from 'three/addons/shaders/RGBShiftShader.js';
+import { OutputPass }     from 'three/addons/postprocessing/OutputPass.js';
+
+const canvas = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0x05080d, 1);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x05080d, 14, 42);
+
+const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(0, 0, 8);
+
+// --- Lighting: cold key + electric rim ---
+scene.add(new THREE.AmbientLight(0x223344, 0.6));
+const key = new THREE.DirectionalLight(0xeaf6ff, 1.1);
+key.position.set(4, 6, 5);
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x6ec6ff, 1.4);
+rim.position.set(-5, 2, -4);
+scene.add(rim);
+const fill = new THREE.PointLight(0x88aaff, 0.6, 30);
+fill.position.set(0, -3, 6);
+scene.add(fill);
+
+// --- Frozen landscape backdrop ---
+// A faceted ground plane + distant peaks via a noisy plane.
+function makeTerrain(width, depth, segs, amp) {
+  const g = new THREE.PlaneGeometry(width, depth, segs, segs);
+  const pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i);
+    // crude layered noise via sin sums; cheap & deterministic.
+    const n =
+      Math.sin(x * 0.35 + y * 0.21) * 0.6 +
+      Math.sin(x * 0.9  - y * 0.5)  * 0.25 +
+      Math.sin(x * 1.8  + y * 1.3)  * 0.12;
+    pos.setZ(i, n * amp);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+const groundMat = new THREE.MeshStandardMaterial({
+  color: 0x12202c, roughness: 0.95, metalness: 0.0, flatShading: true
+});
+const ground = new THREE.Mesh(makeTerrain(80, 80, 80, 1.4), groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -3.2;
+scene.add(ground);
+
+const peaksMat = new THREE.MeshStandardMaterial({
+  color: 0x1a2e44, roughness: 1.0, flatShading: true
+});
+const peaks = new THREE.Mesh(makeTerrain(140, 30, 120, 4.5), peaksMat);
+peaks.rotation.x = -Math.PI / 2;
+peaks.rotation.z = Math.PI;
+peaks.position.set(0, -2, -22);
+scene.add(peaks);
+
+// --- Ice blocks: one per project, stacked along Z ---
+// Each block is a faceted crystal cluster: a low-poly icosahedron with
+// per-vertex displacement, flat-shaded, semi-transparent with a fresnel rim.
+function makeIceBlock(seed) {
+  const geo = new THREE.IcosahedronGeometry(1.4, 2);
+  const pos = geo.attributes.position;
+  // displace each vertex pseudo-randomly so every block is unique.
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const r = 0.18 * (
+      Math.sin(x * 2.1 + seed) +
+      Math.cos(y * 1.7 - seed * 0.7) +
+      Math.sin(z * 2.4 + seed * 1.3)
+    );
+    pos.setXYZ(i, x * (1 + r * 0.35), y * (1 + r * 0.35), z * (1 + r * 0.35));
+  }
+  geo.computeVertexNormals();
+
+  // Outer translucent crystal — fresnel handled by onBeforeCompile injection.
+  const mat = new THREE.MeshPhysicalMaterial({
+    color: 0xb6dfff,
+    metalness: 0.0,
+    roughness: 0.15,
+    transmission: 0.85,
+    thickness: 1.6,
+    ior: 1.31,                // approximately ice
+    attenuationColor: 0x9ec9e6,
+    attenuationDistance: 2.8,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.25,
+    transparent: true,
+    flatShading: true,
+    side: THREE.DoubleSide,
+  });
+
+  const mesh = new THREE.Mesh(geo, mat);
+
+  // Inner additive core: a smaller wireframe-ish mesh that reads as
+  // internal fractures / trapped light.
+  const coreGeo = new THREE.IcosahedronGeometry(0.85, 1);
+  const coreMat = new THREE.MeshBasicMaterial({
+    color: 0x6ec6ff,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.35,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+  });
+  const core = new THREE.Mesh(coreGeo, coreMat);
+  mesh.add(core);
+
+  // Glow halo — a back-facing sphere with a soft additive material.
+  const haloGeo = new THREE.SphereGeometry(1.9, 24, 24);
+  const haloMat = new THREE.MeshBasicMaterial({
+    color: 0x4aa8ff,
+    transparent: true,
+    opacity: 0.06,
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide,
+    depthWrite: false,
+  });
+  mesh.add(new THREE.Mesh(haloGeo, haloMat));
+
+  mesh.userData.core = core;
+  return mesh;
+}
+
+const PROJECT_COUNT = 4;
+const SPACING_Z = -8;           // distance between projects along the camera path
+const blocks = [];
+for (let i = 0; i < PROJECT_COUNT; i++) {
+  const b = makeIceBlock(i * 11.37 + 3.1);
+  // Alternate left/right to match the HTML overlay sides.
+  const side = i % 2 === 0 ? -1.6 : 1.6;
+  b.position.set(side, 0, i * SPACING_Z - 4);
+  b.rotation.y = i * 0.7;
+  scene.add(b);
+  blocks.push(b);
+}
+
+// --- Snow / ice motes: a particle field that drifts and parallaxes with mouse ---
+const SNOW_COUNT = 1200;
+const snowGeo = new THREE.BufferGeometry();
+const snowPos = new Float32Array(SNOW_COUNT * 3);
+const snowVel = new Float32Array(SNOW_COUNT);
+for (let i = 0; i < SNOW_COUNT; i++) {
+  snowPos[i * 3 + 0] = (Math.random() - 0.5) * 40;
+  snowPos[i * 3 + 1] = (Math.random() - 0.5) * 20;
+  snowPos[i * 3 + 2] = -Math.random() * 35 + 2;
+  snowVel[i] = 0.002 + Math.random() * 0.008;
+}
+snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3));
+const snowMat = new THREE.PointsMaterial({
+  color: 0xdcefff,
+  size: 0.035,
+  transparent: true,
+  opacity: 0.85,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+const snow = new THREE.Points(snowGeo, snowMat);
+scene.add(snow);
+
+// --- Post-processing: bloom + RGB shift (chromatic aberration) ---
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+const bloom = new UnrealBloomPass(
+  new THREE.Vector2(innerWidth, innerHeight),
+  0.55,  // strength
+  0.9,   // radius
+  0.18   // threshold
+);
+composer.addPass(bloom);
+
+const rgbShift = new ShaderPass(RGBShiftShader);
+rgbShift.uniforms.amount.value = 0.0015;
+composer.addPass(rgbShift);
+
+composer.addPass(new OutputPass());
+
+// --- Scroll handling: drive camera along Z, lerped for inertia ---
+let scrollTarget = 0;       // normalized [0..1]
+let scrollSmoothed = 0;
+let scrollVelocity = 0;
+let lastSmoothed = 0;
+
+function updateScrollTarget() {
+  const max = document.documentElement.scrollHeight - innerHeight;
+  scrollTarget = max > 0 ? window.scrollY / max : 0;
+}
+updateScrollTarget();
+window.addEventListener('scroll', updateScrollTarget, { passive: true });
+
+// Mouse parallax
+const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+window.addEventListener('pointermove', (e) => {
+  mouse.tx = (e.clientX / innerWidth - 0.5) * 2;
+  mouse.ty = (e.clientY / innerHeight - 0.5) * 2;
+});
+
+// --- Resize ---
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  composer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// --- Animation loop ---
+const clock = new THREE.Clock();
+function tick() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t  = clock.elapsedTime;
+
+  // Smooth scroll & track velocity for chromatic aberration intensity.
+  scrollSmoothed += (scrollTarget - scrollSmoothed) * Math.min(1, dt * 6);
+  scrollVelocity = (scrollSmoothed - lastSmoothed) / Math.max(dt, 1e-4);
+  lastSmoothed = scrollSmoothed;
+
+  // Camera drift along the Z corridor + gentle mouse parallax.
+  mouse.x += (mouse.tx - mouse.x) * 0.05;
+  mouse.y += (mouse.ty - mouse.y) * 0.05;
+  const totalZ = SPACING_Z * (PROJECT_COUNT - 1);
+  camera.position.z = 8 + scrollSmoothed * (totalZ - 2);
+  camera.position.x = mouse.x * 0.35 + Math.sin(t * 0.15) * 0.15;
+  camera.position.y = -mouse.y * 0.25 + Math.sin(t * 0.22) * 0.1;
+  camera.lookAt(0, 0, camera.position.z + SPACING_Z * 0.6);
+
+  // Modulate chromatic aberration with scroll velocity — strongest mid-motion.
+  const aberrationBase = 0.0012;
+  const aberrationKick = Math.min(0.012, Math.abs(scrollVelocity) * 0.018);
+  rgbShift.uniforms.amount.value = aberrationBase + aberrationKick;
+
+  // Rotate each ice block lazily; spin inner core faster.
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    b.rotation.y += dt * 0.12 * (i % 2 ? 1 : -1);
+    b.rotation.x  = Math.sin(t * 0.3 + i) * 0.08;
+    b.userData.core.rotation.y -= dt * 0.45;
+    b.userData.core.rotation.x += dt * 0.25;
+  }
+
+  // Snow: drift downward, wrap around. Slight horizontal sway with mouse.
+  const arr = snowGeo.attributes.position.array;
+  for (let i = 0; i < SNOW_COUNT; i++) {
+    arr[i * 3 + 1] -= snowVel[i] * 60 * dt;
+    arr[i * 3 + 0] += Math.sin(t * 0.5 + i) * 0.002 + mouse.x * 0.0015;
+    if (arr[i * 3 + 1] < -10) {
+      arr[i * 3 + 1] = 10;
+      arr[i * 3 + 0] = (Math.random() - 0.5) * 40;
+    }
+  }
+  snowGeo.attributes.position.needsUpdate = true;
+
+  composer.render();
+  requestAnimationFrame(tick);
+}
+tick();
+
+// --- Notes for next iteration ---
+// • Audio: WebAudio drone modulated by scrollVelocity would close the loop on
+//   "ambient sound that matches every movement". Skipped here because browser
+//   autoplay rules require a user gesture; needs a tasteful "tap to begin".
+// • WebGL-rendered text: an MSDF font atlas via troika-three-text would let us
+//   put the headings inside the canvas (with their own chromatic aberration).
+//   The HTML overlay above is a faster prototype path and stays accessible.
+// • Particle footer that morphs to shapes on hover: the snow buffer here is a
+//   good starting point — swap target positions on hover and lerp.
+</script>
+
+</body>
+</html>
