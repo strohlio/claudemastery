@@ -9,20 +9,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
 <style>
   :root {
-    --pink: #ff5fa2;
+    --violet: #9d4edd;
     --purple: #8a4fff;
     --blue: #2bb3ff;
     --green: #34d399;
     --yellow: #ffd23f;
     --orange: #ff8c42;
     --ink: #3a2a4d;
-    --paper: #fff7fc;
+    --paper: #faf7ff;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; overscroll-behavior: none; }
   body {
     font-family: 'Pacifico', cursive;
-    background: linear-gradient(160deg, #ffe6f3 0%, #e9e0ff 50%, #dff5ff 100%);
+    background: linear-gradient(160deg, #efe6ff 0%, #e9e0ff 50%, #dff5ff 100%);
     color: var(--ink);
     min-height: 100%;
     display: flex;
@@ -40,7 +40,7 @@
     text-align: center;
     line-height: 1;
     margin-bottom: 2px;
-    background: linear-gradient(90deg, var(--pink), var(--purple), var(--blue));
+    background: linear-gradient(90deg, var(--violet), var(--purple), var(--blue));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -53,7 +53,7 @@
     color: var(--purple);
     margin-bottom: 12px;
   }
-  .tagline b { color: var(--pink); }
+  .tagline b { color: var(--violet); }
 
   /* MODE TOGGLE */
   .modes {
@@ -167,7 +167,7 @@
     font-family: 'Pacifico', cursive;
     font-weight: 800;
     font-size: 28px;
-    color: var(--pink);
+    color: var(--violet);
   }
   @keyframes pop { 0% { transform: scale(0.5); opacity: 0;} 100% { transform: scale(1); opacity: 1;} }
 
@@ -191,7 +191,7 @@
     box-shadow: 3px 3px 0 var(--ink);
   }
   .stepbtn:active { transform: translate(3px,3px); box-shadow: 0 0 0 var(--ink); }
-  .stepbtn.next { background: var(--pink); color: white; }
+  .stepbtn.next { background: var(--violet); color: white; }
   .stepbtn:disabled { opacity: 0.4; cursor: default; }
   .stepcount { font-weight: 600; font-size: 15px; min-width: 70px; text-align: center; }
 
@@ -213,7 +213,7 @@
     cursor: pointer;
     box-shadow: 0 0 0 2px var(--ink);
   }
-  .swatch.active { transform: scale(1.2); box-shadow: 0 0 0 3px var(--pink); }
+  .swatch.active { transform: scale(1.2); box-shadow: 0 0 0 3px var(--violet); }
 
   .tool {
     font-family: 'Pacifico', cursive;
@@ -239,7 +239,7 @@
     cursor: pointer;
     border: 2px solid transparent;
   }
-  .sizedot.active { border-color: var(--pink); transform: scale(1.15); }
+  .sizedot.active { border-color: var(--violet); transform: scale(1.15); }
 
   .footer {
     margin-top: 16px;
@@ -249,7 +249,7 @@
     font-weight: 500;
     padding-bottom: 20px;
   }
-  .footer b { color: var(--pink); }
+  .footer b { color: var(--violet); }
 </style>
 </head>
 <body>
@@ -307,7 +307,7 @@
   [guide, art].forEach(function (c) { c.width = SIZE; c.height = SIZE; });
 
   // ---- Drawing state ----
-  var color = '#ff5fa2';
+  var color = '#9d4edd';
   var brush = 14;
   var erasing = false;
   var drawing = false;
@@ -463,7 +463,7 @@
     for (var i = 0; i < stepIndex; i++) paintStep(stepStrokes(i), Infinity, STYLE_DONE);
     var tip = paintStep(stepStrokes(stepIndex), curBudget, STYLE_CUR);
     if (showPen && tip) {
-      gctx.beginPath(); gctx.fillStyle = '#ff5fa2';
+      gctx.beginPath(); gctx.fillStyle = '#9d4edd';
       gctx.arc(tip.x, tip.y, 18, 0, Math.PI * 2); gctx.fill();
       gctx.lineWidth = 6; gctx.strokeStyle = '#ffffff'; gctx.stroke();
     }
@@ -554,7 +554,7 @@
   toggleBtn.addEventListener('click', function () { setGuideHidden(!guideHidden); });
 
   // ---- Color palette ----
-  var colors = ['#3a2a4d', '#ff5fa2', '#8a4fff', '#2bb3ff', '#34d399',
+  var colors = ['#3a2a4d', '#9d4edd', '#8a4fff', '#2bb3ff', '#34d399',
                 '#ffd23f', '#ff8c42', '#e8434b', '#7a5230', '#ffffff'];
   var toolbar = document.getElementById('toolbar');
   var palette = document.createElement('div');
