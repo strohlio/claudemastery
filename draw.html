@@ -13,7 +13,7 @@
     --purple: #8a4fff;
     --blue: #2bb3ff;
     --green: #34d399;
-    --yellow: #ffd23f;
+    --indigo: #4f46e5;
     --orange: #ff8c42;
     --ink: #3a2a4d;
     --paper: #faf7ff;
@@ -102,7 +102,7 @@
     gap: 5px;
   }
   .pick:active { transform: translate(3px,3px); box-shadow: 0 0 0 var(--ink); }
-  .pick.active { background: var(--yellow); }
+  .pick.active { background: var(--indigo); color: white; }
   .pick .emoji { font-size: 20px; }
 
   /* STAGE */
@@ -279,7 +279,7 @@
   <button class="stepbtn next" id="next">Next</button>
 </div>
 
-<button class="stepbtn" id="show" style="margin-top:8px;background:var(--yellow);">Show Me How!</button>
+<button class="stepbtn" id="show" style="margin-top:8px;background:var(--indigo);color:white;">Show Me How!</button>
 <button class="stepbtn" id="toggleGuide" style="margin-top:8px;background:var(--blue);color:white;">Hide Help Lines</button>
 
 <div class="toolbar" id="toolbar">
@@ -554,7 +554,7 @@
 
   // ---- Color palette ----
   var colors = ['#3a2a4d', '#9d4edd', '#8a4fff', '#2bb3ff', '#34d399',
-                '#ffd23f', '#ff8c42', '#e8434b', '#7a5230', '#ffffff'];
+                '#4f46e5', '#ff8c42', '#e8434b', '#7a5230', '#ffffff'];
   var toolbar = document.getElementById('toolbar');
   var palette = document.createElement('div');
   palette.style.display = 'flex';
