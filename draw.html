@@ -58,6 +58,8 @@
   /* MODE TOGGLE */
   .modes {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 8px;
     margin-bottom: 14px;
   }
@@ -260,6 +262,7 @@
 <div class="modes" id="modes">
   <button class="mode" id="modeFree">Free Draw</button>
   <button class="mode active" id="modeLearn">Learn to Draw</button>
+  <button class="mode" id="modeColor">Coloring Pages</button>
 </div>
 
 <div class="picker" id="picker"></div>
@@ -417,6 +420,7 @@
   var currentKey = 'cat';
   var stepIndex = 0;
   var animId = null;
+  var appMode = 'learn'; // 'learn' | 'free' | 'color'
   var STYLE_DONE = { color: '#e2d4f7', width: 6, dash: [14, 12] };
   var STYLE_CUR  = { color: '#8a4fff', width: 10, dash: [] };
 
@@ -523,11 +527,15 @@
     b.textContent = lessons[key].label;
     b.addEventListener('click', function () {
       currentKey = key;
-      stepIndex = 0;
       document.querySelectorAll('.pick').forEach(function (p) { p.classList.remove('active'); });
       b.classList.add('active');
-      actx.clearRect(0, 0, SIZE, SIZE); // fresh canvas for new drawing
-      animateStep();
+      if (appMode === 'color') {
+        renderColoringPage(); // load this picture as a coloring page
+      } else {
+        stepIndex = 0;
+        actx.clearRect(0, 0, SIZE, SIZE); // fresh canvas for new drawing
+        animateStep();
+      }
     });
     picker.appendChild(b);
   });
@@ -605,7 +613,8 @@
     eraseTool.classList.add('active'); penTool.classList.remove('active');
   });
   document.getElementById('clearTool').addEventListener('click', function () {
-    actx.clearRect(0, 0, SIZE, SIZE);
+    if (appMode === 'color') { renderColoringPage(); } // keep the outline, clear the colors
+    else { actx.clearRect(0, 0, SIZE, SIZE); }
   });
   document.getElementById('saveTool').addEventListener('click', function () {
     // Combine white background + guide + art into one image to save
@@ -656,8 +665,12 @@
   }
   function start(e) {
     e.preventDefault();
-    drawing = true;
     var p = pos(e);
+    if (appMode === 'color') {
+      floodFill(p.x, p.y, color); // tap to fill a shape, stays inside the lines
+      return;
+    }
+    drawing = true;
     lastX = p.x; lastY = p.y;
     if (erasing) {
       // erase BOTH the drawing and the purple guide lines underneath
@@ -700,30 +713,110 @@
   art.addEventListener('touchmove', move, { passive: false });
   art.addEventListener('touchend', end);
 
-  // ---- Mode switching: Free Draw vs Learn to Draw ----
+  // ---- Coloring pages: draw the picture as black outlines to color inside ----
+  function renderColoringPage() {
+    if (animId) cancelAnimationFrame(animId);
+    animId = null;
+    gctx.clearRect(0, 0, SIZE, SIZE);
+    guide.style.visibility = 'visible';
+    actx.clearRect(0, 0, SIZE, SIZE);
+    actx.save();
+    actx.globalCompositeOperation = 'source-over';
+    actx.strokeStyle = '#000000';
+    actx.fillStyle = '#000000';
+    actx.lineWidth = 7;
+    actx.lineCap = 'round';
+    actx.lineJoin = 'round';
+    actx.setLineDash([]);
+    var steps = lessons[currentKey].steps;
+    for (var s = 0; s < steps.length; s++) {
+      var strokes = steps[s].s;
+      for (var k = 0; k < strokes.length; k++) {
+        var st = strokes[k];
+        if (st.dot) {
+          actx.beginPath();
+          actx.arc(st.pts[0].x, st.pts[0].y, st.dot, 0, Math.PI * 2);
+          actx.fill();
+        } else {
+          var pts = st.pts;
+          actx.beginPath();
+          actx.moveTo(pts[0].x, pts[0].y);
+          for (var i = 1; i < pts.length; i++) actx.lineTo(pts[i].x, pts[i].y);
+          actx.stroke();
+        }
+      }
+    }
+    actx.restore();
+    document.getElementById('bubble').textContent = 'Tap inside the shapes to color them!';
+  }
+
+  function hexToRGB(hex) {
+    var h = hex.replace('#', '');
+    return { r: parseInt(h.substr(0, 2), 16), g: parseInt(h.substr(2, 2), 16), b: parseInt(h.substr(4, 2), 16) };
+  }
+
+  // Bucket fill: fills the tapped area with a color but stops at the black lines.
+  function floodFill(fx, fy, hex) {
+    var w = SIZE, h = SIZE;
+    var sx = Math.round(fx), sy = Math.round(fy);
+    if (sx < 0 || sy < 0 || sx >= w || sy >= h) return;
+    var img = actx.getImageData(0, 0, w, h);
+    var d = img.data;
+    var fill = hexToRGB(hex);
+    function isLine(i) { var o = i * 4; return d[o] < 60 && d[o + 1] < 60 && d[o + 2] < 60 && d[o + 3] > 128; }
+    var start = sy * w + sx;
+    if (isLine(start)) return; // tapped right on a line — do nothing
+    var so = start * 4;
+    if (d[so] === fill.r && d[so + 1] === fill.g && d[so + 2] === fill.b && d[so + 3] === 255) return;
+    var visited = new Uint8Array(w * h);
+    var stack = [start];
+    visited[start] = 1;
+    while (stack.length) {
+      var p = stack.pop();
+      if (isLine(p)) continue; // black line = wall, don't cross or fill it
+      var o = p * 4;
+      d[o] = fill.r; d[o + 1] = fill.g; d[o + 2] = fill.b; d[o + 3] = 255;
+      var x = p % w;
+      if (x > 0 && !visited[p - 1]) { visited[p - 1] = 1; stack.push(p - 1); }
+      if (x < w - 1 && !visited[p + 1]) { visited[p + 1] = 1; stack.push(p + 1); }
+      if (p - w >= 0 && !visited[p - w]) { visited[p - w] = 1; stack.push(p - w); }
+      if (p + w < w * h && !visited[p + w]) { visited[p + w] = 1; stack.push(p + w); }
+    }
+    actx.putImageData(img, 0, 0);
+  }
+
+  // ---- Mode switching: Free Draw / Learn to Draw / Coloring Pages ----
   var modeFree = document.getElementById('modeFree');
   var modeLearn = document.getElementById('modeLearn');
+  var modeColor = document.getElementById('modeColor');
   var steprow = document.querySelector('.steprow');
   var showBtn = document.getElementById('show');
   var tagline = document.getElementById('tagline');
 
-  function setMode(free) {
-    if (free) {
-      if (animId) cancelAnimationFrame(animId);
-      animId = null;
-      modeFree.classList.add('active');
-      modeLearn.classList.remove('active');
+  function setAppMode(mode) {
+    if (animId) cancelAnimationFrame(animId);
+    animId = null;
+    appMode = mode;
+    modeFree.classList.toggle('active', mode === 'free');
+    modeLearn.classList.toggle('active', mode === 'learn');
+    modeColor.classList.toggle('active', mode === 'color');
+    guide.style.visibility = 'visible';
+    if (mode === 'free') {
       picker.classList.add('hidden');
       steprow.classList.add('hidden');
       showBtn.classList.add('hidden');
       toggleBtn.classList.add('hidden');
-      guide.style.visibility = 'visible'; // make sure guide isn't stuck hidden
-      gctx.clearRect(0, 0, SIZE, SIZE); // blank guide — just draw!
+      gctx.clearRect(0, 0, SIZE, SIZE);
       document.getElementById('bubble').textContent = 'Draw anything you want!';
       tagline.innerHTML = 'A blank page just for you — <b>draw anything!</b>';
-    } else {
-      modeFree.classList.remove('active');
-      modeLearn.classList.add('active');
+    } else if (mode === 'color') {
+      picker.classList.remove('hidden');
+      steprow.classList.add('hidden');
+      showBtn.classList.add('hidden');
+      toggleBtn.classList.add('hidden');
+      tagline.innerHTML = 'Pick a picture, then <b>tap inside the shapes</b> to color them!';
+      renderColoringPage();
+    } else { // learn
       picker.classList.remove('hidden');
       steprow.classList.remove('hidden');
       showBtn.classList.remove('hidden');
@@ -732,8 +825,9 @@
       animateStep();
     }
   }
-  modeFree.addEventListener('click', function () { setMode(true); });
-  modeLearn.addEventListener('click', function () { setMode(false); });
+  modeFree.addEventListener('click', function () { setAppMode('free'); });
+  modeLearn.addEventListener('click', function () { setAppMode('learn'); });
+  modeColor.addEventListener('click', function () { setAppMode('color'); });
 
   // ---- Go! ----
   animateStep();
