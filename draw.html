@@ -631,32 +631,65 @@
       y: (pt.clientY - rect.top) / rect.height * SIZE
     };
   }
+  // Rub out a round spot on any canvas (used for the eraser).
+  function eraseDot(ctx, x, y) {
+    ctx.save();
+    ctx.setLineDash([]);
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.beginPath();
+    ctx.arc(x, y, brush / 2 + 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  // Rub out along a line on any canvas.
+  function eraseLine(ctx, x1, y1, x2, y2) {
+    ctx.save();
+    ctx.setLineDash([]);
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.lineWidth = brush + 4;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.restore();
+  }
   function start(e) {
     e.preventDefault();
     drawing = true;
     var p = pos(e);
     lastX = p.x; lastY = p.y;
-    // a dot so single taps show
-    actx.beginPath();
-    actx.fillStyle = color;
-    if (erasing) { actx.globalCompositeOperation = 'destination-out'; }
-    else { actx.globalCompositeOperation = 'source-over'; }
-    actx.arc(p.x, p.y, brush / 2, 0, Math.PI * 2);
-    actx.fill();
+    if (erasing) {
+      // erase BOTH the drawing and the purple guide lines underneath
+      eraseDot(actx, p.x, p.y);
+      eraseDot(gctx, p.x, p.y);
+    } else {
+      actx.globalCompositeOperation = 'source-over';
+      actx.beginPath();
+      actx.fillStyle = color;
+      actx.arc(p.x, p.y, brush / 2, 0, Math.PI * 2);
+      actx.fill();
+    }
   }
   function move(e) {
     if (!drawing) return;
     e.preventDefault();
     var p = pos(e);
-    actx.globalCompositeOperation = erasing ? 'destination-out' : 'source-over';
-    actx.strokeStyle = color;
-    actx.lineWidth = brush;
-    actx.lineCap = 'round';
-    actx.lineJoin = 'round';
-    actx.beginPath();
-    actx.moveTo(lastX, lastY);
-    actx.lineTo(p.x, p.y);
-    actx.stroke();
+    if (erasing) {
+      eraseLine(actx, lastX, lastY, p.x, p.y);
+      eraseLine(gctx, lastX, lastY, p.x, p.y); // rub away the AI guide lines too
+    } else {
+      actx.globalCompositeOperation = 'source-over';
+      actx.strokeStyle = color;
+      actx.lineWidth = brush;
+      actx.lineCap = 'round';
+      actx.lineJoin = 'round';
+      actx.beginPath();
+      actx.moveTo(lastX, lastY);
+      actx.lineTo(p.x, p.y);
+      actx.stroke();
+    }
     lastX = p.x; lastY = p.y;
   }
   function end() { drawing = false; }
