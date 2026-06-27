@@ -109,7 +109,9 @@
   .stage {
     position: relative;
     width: min(92vw, 520px);
+    height: min(92vw, 520px); /* explicit square — keeps the canvas from collapsing */
     aspect-ratio: 1 / 1;
+    flex-shrink: 0;            /* don't let the flex layout squish it flat */
     background: white;
     border: 5px solid var(--ink);
     border-radius: 24px;
