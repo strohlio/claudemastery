@@ -55,6 +55,28 @@
   }
   .tagline b { color: var(--pink); }
 
+  /* MODE TOGGLE */
+  .modes {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .mode {
+    font-family: 'Baloo 2', cursive;
+    font-weight: 700;
+    font-size: 16px;
+    padding: 9px 18px;
+    border: 3px solid var(--ink);
+    border-radius: 18px;
+    background: white;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--ink);
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .mode:active { transform: translate(3px,3px); box-shadow: 0 0 0 var(--ink); }
+  .mode.active { background: var(--purple); color: white; }
+  .hidden { display: none !important; }
+
   /* PICKER */
   .picker {
     display: flex;
@@ -231,7 +253,12 @@
 <body>
 
 <h1>Maya's Draw-Along ✨</h1>
-<p class="tagline">Pick something fun, then follow the <b>steps</b> to draw it! 🎨</p>
+<p class="tagline" id="tagline">Pick something fun, then follow the <b>steps</b> to draw it! 🎨</p>
+
+<div class="modes" id="modes">
+  <button class="mode" id="modeFree">🎨 Free Draw</button>
+  <button class="mode active" id="modeLearn">📚 Learn to Draw</button>
+</div>
 
 <div class="picker" id="picker"></div>
 
@@ -610,6 +637,33 @@
   art.addEventListener('touchstart', start, { passive: false });
   art.addEventListener('touchmove', move, { passive: false });
   art.addEventListener('touchend', end);
+
+  // ---- Mode switching: Free Draw vs Learn to Draw ----
+  var modeFree = document.getElementById('modeFree');
+  var modeLearn = document.getElementById('modeLearn');
+  var steprow = document.querySelector('.steprow');
+  var tagline = document.getElementById('tagline');
+
+  function setMode(free) {
+    if (free) {
+      modeFree.classList.add('active');
+      modeLearn.classList.remove('active');
+      picker.classList.add('hidden');
+      steprow.classList.add('hidden');
+      gctx.clearRect(0, 0, SIZE, SIZE); // blank guide — just draw!
+      document.getElementById('bubble').textContent = 'Draw anything you want! ✨';
+      tagline.innerHTML = 'A blank page just for you — <b>draw anything!</b> 🎨';
+    } else {
+      modeFree.classList.remove('active');
+      modeLearn.classList.add('active');
+      picker.classList.remove('hidden');
+      steprow.classList.remove('hidden');
+      tagline.innerHTML = 'Pick something fun, then follow the <b>steps</b> to draw it! 🎨';
+      drawGuide();
+    }
+  }
+  modeFree.addEventListener('click', function () { setMode(true); });
+  modeLearn.addEventListener('click', function () { setMode(false); });
 
   // ---- Go! ----
   drawGuide();
