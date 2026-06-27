@@ -504,6 +504,16 @@
     setTimeout(function () { c.classList.remove('show'); }, 1800);
   }
 
+  // When the tutorial is finished, remove the purple "how to" guide lines
+  // so only Maya's own drawing is left on screen.
+  function finishLesson() {
+    if (animId) cancelAnimationFrame(animId);
+    animId = null;
+    gctx.clearRect(0, 0, SIZE, SIZE);
+    document.getElementById('bubble').textContent = '🌟 All done — this is YOUR drawing! 🌟';
+    celebrate();
+  }
+
   // ---- Build picker ----
   var picker = document.getElementById('picker');
   Object.keys(lessons).forEach(function (key) {
@@ -524,7 +534,7 @@
   // ---- Step buttons ----
   document.getElementById('next').addEventListener('click', function () {
     if (stepIndex < numSteps() - 1) { stepIndex++; animateStep(); }
-    else { celebrate(); }
+    else { finishLesson(); }
   });
   document.getElementById('back').addEventListener('click', function () {
     if (stepIndex > 0) { stepIndex--; animateStep(); }
