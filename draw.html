@@ -6,7 +6,7 @@
 <title>M.Strohl how to draw</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --pink: #ff5fa2;
@@ -21,7 +21,7 @@
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; overscroll-behavior: none; }
   body {
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Quicksand', sans-serif;
     background: linear-gradient(160deg, #ffe6f3 0%, #e9e0ff 50%, #dff5ff 100%);
     color: var(--ink);
     min-height: 100%;
@@ -34,7 +34,7 @@
   }
 
   h1 {
-    font-family: 'Baloo 2', cursive;
+    font-family: 'Pacifico', cursive;
     font-weight: 800;
     font-size: clamp(28px, 7vw, 44px);
     text-align: center;
@@ -62,7 +62,7 @@
     margin-bottom: 14px;
   }
   .mode {
-    font-family: 'Baloo 2', cursive;
+    font-family: 'Quicksand', sans-serif;
     font-weight: 700;
     font-size: 16px;
     padding: 9px 18px;
@@ -87,7 +87,7 @@
     max-width: 560px;
   }
   .pick {
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Quicksand', sans-serif;
     font-weight: 600;
     font-size: 15px;
     padding: 8px 12px;
@@ -164,7 +164,7 @@
   .celebrate.show { display: flex; animation: pop 0.4s ease; }
   .celebrate .big { font-size: 64px; }
   .celebrate .msg {
-    font-family: 'Baloo 2', cursive;
+    font-family: 'Pacifico', cursive;
     font-weight: 800;
     font-size: 28px;
     color: var(--pink);
@@ -179,7 +179,7 @@
     margin-top: 12px;
   }
   .stepbtn {
-    font-family: 'Baloo 2', cursive;
+    font-family: 'Quicksand', sans-serif;
     font-weight: 700;
     font-size: 16px;
     padding: 10px 18px;
@@ -216,7 +216,7 @@
   .swatch.active { transform: scale(1.2); box-shadow: 0 0 0 3px var(--pink); }
 
   .tool {
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Quicksand', sans-serif;
     font-weight: 600;
     font-size: 14px;
     padding: 8px 12px;
@@ -281,6 +281,7 @@
 </div>
 
 <button class="stepbtn" id="show" style="margin-top:8px;background:var(--yellow);">▶ Show Me How!</button>
+<button class="stepbtn" id="toggleGuide" style="margin-top:8px;background:var(--blue);color:white;">🙈 Hide Help Lines</button>
 
 <div class="toolbar" id="toolbar">
   <div class="sizes" id="sizes"></div>
@@ -479,6 +480,7 @@
   function animateStep() {
     if (animId) cancelAnimationFrame(animId);
     updateUI();
+    setGuideHidden(false); // help lines visible so the pen animation can be seen
     var total = strokeCount(stepStrokes(stepIndex));
     var p = 0, speed = Math.max(3, Math.ceil(total / 55));
     function frame() {
@@ -540,6 +542,16 @@
     if (stepIndex > 0) { stepIndex--; animateStep(); }
   });
   document.getElementById('show').addEventListener('click', function () { animateStep(); });
+
+  // ---- Hide / show the purple help lines so only the kid's drawing shows ----
+  var guideHidden = false;
+  var toggleBtn = document.getElementById('toggleGuide');
+  function setGuideHidden(hidden) {
+    guideHidden = hidden;
+    guide.style.visibility = hidden ? 'hidden' : 'visible';
+    toggleBtn.textContent = hidden ? '👀 Show Help Lines' : '🙈 Hide Help Lines';
+  }
+  toggleBtn.addEventListener('click', function () { setGuideHidden(!guideHidden); });
 
   // ---- Color palette ----
   var colors = ['#3a2a4d', '#ff5fa2', '#8a4fff', '#2bb3ff', '#34d399',
@@ -672,6 +684,8 @@
       picker.classList.add('hidden');
       steprow.classList.add('hidden');
       showBtn.classList.add('hidden');
+      toggleBtn.classList.add('hidden');
+      guide.style.visibility = 'visible'; // make sure guide isn't stuck hidden
       gctx.clearRect(0, 0, SIZE, SIZE); // blank guide — just draw!
       document.getElementById('bubble').textContent = 'Draw anything you want! ✨';
       tagline.innerHTML = 'A blank page just for you — <b>draw anything!</b> 🎨';
@@ -681,6 +695,7 @@
       picker.classList.remove('hidden');
       steprow.classList.remove('hidden');
       showBtn.classList.remove('hidden');
+      toggleBtn.classList.remove('hidden');
       tagline.innerHTML = 'Pick something fun, then follow the <b>steps</b> to draw it! 🎨';
       animateStep();
     }
